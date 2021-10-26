@@ -1,0 +1,30 @@
+Phase:GazRule
+Input: Lookup
+Options: control = appelt
+
+Rule: WikiDisease
+(
+  {Lookup.majorType == plant_disease}
+):wikidisease
+--> 
+:wikidisease.PlantDisease = {rule=WikiDisease}
+
+Rule: EPPOAnimals
+(
+  {Lookup.majorType == animals} | {Lookup.majorType == micro_organisms}
+):wikidisease
+-->
+:wikidisease.EPPO_animals = {rule=EPPOAnimals}
+
+Rule: EPPOPlant
+(
+  {Lookup.majorType == plants}
+):wikidisease
+-->
+:wikidisease.Plant = {rule=EPPOPlant}
+
+
+
+
+
+

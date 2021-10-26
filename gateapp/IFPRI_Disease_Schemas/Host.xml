@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<schema xmlns="http://www.w3.org/2000/10/XMLSchema">
+  <!-- XSchema deffinition for Address -->
+  <element name="Host">
+    <complexType>
+      <attribute name="host_type" use="optional">
+        <simpleType>
+          <restriction base="string">
+            <enumeration value="wheat"/>
+            <enumeration value="maize"/>
+	    <enumeration value="rice"/>
+            <enumeration value="soybeans"/>
+            <enumeration value="others"/>
+         </restriction>
+      </simpleType>	
+      </attribute>
+    </complexType>
+  </element>
+</schema>

@@ -1,0 +1,11 @@
+<?xml version="1.0" ?>
+<schema xmlns="http://www.w3.org/2000/10/XMLSchema">
+  <include schemaLocation="DiseaseName.xml"/>
+  <include schemaLocation="Host.xml"/>
+  <include schemaLocation="PestName.xml"/>
+  <include schemaLocation="ImpactedArea.xml"/>
+  <include schemaLocation="TypeOfImpact.xml"/>
+  <include schemaLocation="PestCausingDeathOfAffectedPlant.xml"/>
+  <include schemaLocation="Duration.xml"/>
+  <include schemaLocation="OriginCountry.xml"/>
+</schema>
