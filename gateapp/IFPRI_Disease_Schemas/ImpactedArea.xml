@@ -2,5 +2,11 @@
 <schema xmlns="http://www.w3.org/2000/10/XMLSchema">
   <!-- XSchema deffinition for Address -->
   <element name="ImpactedArea">
+    <complexType>
+      <attribute name="Country" use="optional">
+      </attribute>
+      <attribute name="Sub_Region" use="optional">
+      </attribute>
+    </complexType>
   </element>
 </schema>

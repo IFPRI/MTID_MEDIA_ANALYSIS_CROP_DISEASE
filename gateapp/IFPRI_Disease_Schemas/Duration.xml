@@ -6,8 +6,8 @@
       <attribute name="duration" use="optional">
         <simpleType>
           <restriction base="string">
-            <enumeration value="start_date"/>
-            <enumeration value="end_date"/>
+            <enumeration value="starting_date"/>
+            <enumeration value="ending_date"/>
           </restriction>
         </simpleType>
       </attribute>

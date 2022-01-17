@@ -2,5 +2,16 @@
 <schema xmlns="http://www.w3.org/2000/10/XMLSchema">
   <!-- XSchema deffinition for Address -->
   <element name="TypeOfImpact">
+    <complexType>
+      <attribute name="Impact_type" use="optional">
+        <simpleType>
+       	 <restriction base="string">
+            <enumeration value="pest causing the death of affected plant"/>
+            <enumeration value="Pest causing qualitative production losses"/>
+            <enumeration value="Pest causing quantitative production losses"/>
+          </restriction>
+        </simpleType>
+      </attribute>
+    </complexType>
   </element>
 </schema>
