@@ -1,0 +1,3 @@
+[submodule "GATEpythonInterface"]
+	path = GATEpythonInterface
+	url = git@github.com:GateNLP/GATEpythonInterface.git

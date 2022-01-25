@@ -2,5 +2,9 @@
 <schema xmlns="http://www.w3.org/2000/10/XMLSchema">
   <!-- XSchema deffinition for Address -->
   <element name="OriginCountry">
+    <complexType>
+      <attribute name="country" use="optional">
+      </attribute>
+    </complexType>
   </element>
 </schema>

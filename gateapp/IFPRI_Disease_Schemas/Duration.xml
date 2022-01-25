@@ -3,13 +3,9 @@
   <!-- XSchema deffinition for Address -->
   <element name="Duration">
     <complexType>
-      <attribute name="duration" use="optional">
-        <simpleType>
-          <restriction base="string">
-            <enumeration value="starting_date"/>
-            <enumeration value="ending_date"/>
-          </restriction>
-        </simpleType>
+      <attribute name="starting_date" use="optional">
+      </attribute>
+      <attribute name="ending_date" use="optional">
       </attribute>
     </complexType>
   </element>

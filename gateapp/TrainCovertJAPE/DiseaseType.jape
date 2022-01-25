@@ -1,0 +1,51 @@
+Phase:GazRule
+Input: TypeOfImpact Sentence
+Options: control = appelt
+
+Rule: SentLevelToI
+(
+  {Sentence contains TypeOfImpact}
+):sltoi
+--> 
+//:sltoi.SentLevelToI = {rule=SentLevelToI},
+{
+    AnnotationSet sentenceLocatedSet = bindings.get("sltoi");
+    Annotation sentenceLocated = sentenceLocatedSet.iterator().next();
+    Node nodestart =  sentenceLocated.getStartNode();
+    Node nodeend =  sentenceLocated.getEndNode();
+    long crstart = nodestart.getOffset();
+    long crend = nodeend.getOffset();
+    
+    AnnotationSet all_toi_set = inputAS.get("TypeOfImpact",crstart,crend);
+    //System.out.println(all_toi_set);
+    
+    List<String> labelList = new ArrayList<String>();
+    
+    for (Annotation aa:all_toi_set.inDocumentOrder()){
+        FeatureMap aaFeature = aa.getFeatures();
+        String impactType = "None";
+        if (aaFeature.containsKey("Impact_type")){
+            impactType = aaFeature.get("Impact_type").toString();
+            labelList.add(impactType);
+        }
+        else if (aaFeature.containsKey("Type of Impact")){
+            impactType = aaFeature.get("Type of Impact").toString();
+            labelList.add(impactType);
+        }
+    }
+    FeatureMap currentFeatures = Factory.newFeatureMap();
+    currentFeatures.put("all_labels", String.join(" ||| ", labelList));
+    outputAS.add(sentenceLocatedSet.firstNode(), sentenceLocatedSet.lastNode(), "SentLevelToI", currentFeatures);
+}
+
+Rule: SentLevelNegative
+(
+  {Sentence notContains TypeOfImpact}
+):sltoi
+-->
+:sltoi.SentLevelToINegative = {rule=SentLevelNegative}
+
+
+
+
+
