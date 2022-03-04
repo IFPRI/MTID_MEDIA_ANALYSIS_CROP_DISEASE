@@ -4,10 +4,9 @@ Options: control = appelt
 
 Rule: SentLevelToI
 (
-  {Sentence contains TypeOfImpact}
+  {Sentence}
 ):sltoi
 --> 
-//:sltoi.SentLevelToI = {rule=SentLevelToI},
 {
     AnnotationSet sentenceLocatedSet = bindings.get("sltoi");
     Annotation sentenceLocated = sentenceLocatedSet.iterator().next();
@@ -15,37 +14,60 @@ Rule: SentLevelToI
     Node nodeend =  sentenceLocated.getEndNode();
     long crstart = nodestart.getOffset();
     long crend = nodeend.getOffset();
+    long search_start;
+    Node anno_start = nodestart;
+    Node anno_end = nodeend;
+
     
-    AnnotationSet all_toi_set = inputAS.get("TypeOfImpact",crstart,crend);
+
+    if (crstart > 10){
+        search_start = crstart - 10;
+    }
+    else{
+        search_start = crstart;
+    }
+    
+    AnnotationSet all_toi_set = inputAS.get("TypeOfImpact",search_start,crend+10);
     //System.out.println(all_toi_set);
     
     List<String> labelList = new ArrayList<String>();
+
+    boolean haveoverlap = false;
+
     
     for (Annotation aa:all_toi_set.inDocumentOrder()){
-        FeatureMap aaFeature = aa.getFeatures();
-        String impactType = "None";
-        if (aaFeature.containsKey("Impact_type")){
-            impactType = aaFeature.get("Impact_type").toString();
-            labelList.add(impactType);
-        }
-        else if (aaFeature.containsKey("Type of Impact")){
-            impactType = aaFeature.get("Type of Impact").toString();
-            labelList.add(impactType);
+        Node aastart =  aa.getStartNode();
+        Node aaend =  aa.getEndNode();
+        long aa_crstart = aastart.getOffset();
+        long aa_crend = aaend.getOffset();
+        if ( (aa_crstart <= crend &&  aa_crstart >= crstart) || (aa_crend >= crstart && aa_crend <= crend) ){
+            if (aa_crstart < crstart){
+                anno_start = aastart;
+            }
+            if (aa_crend > crend){
+                anno_end = aaend;
+            }
+            haveoverlap = true;
+            FeatureMap aaFeature = aa.getFeatures();
+            String impactType = "None";
+            if (aaFeature.containsKey("Impact_type")){
+                impactType = aaFeature.get("Impact_type").toString();
+                labelList.add(impactType);
+            }
+            else if (aaFeature.containsKey("Type of Impact")){
+                impactType = aaFeature.get("Type of Impact").toString();
+                labelList.add(impactType);
+            }
         }
     }
     FeatureMap currentFeatures = Factory.newFeatureMap();
     currentFeatures.put("all_labels", String.join(" ||| ", labelList));
-    outputAS.add(sentenceLocatedSet.firstNode(), sentenceLocatedSet.lastNode(), "SentLevelToI", currentFeatures);
+    if (haveoverlap){
+        //outputAS.add(sentenceLocatedSet.firstNode(), sentenceLocatedSet.lastNode(), "SentLevelToI", currentFeatures);
+        outputAS.add(anno_start, anno_end, "SentLevelToI", currentFeatures);
+    }
+    else{
+        outputAS.add(sentenceLocatedSet.firstNode(), sentenceLocatedSet.lastNode(), "SentLevelToINegative", currentFeatures);
+
+    }
 }
-
-Rule: SentLevelNegative
-(
-  {Sentence notContains TypeOfImpact}
-):sltoi
--->
-:sltoi.SentLevelToINegative = {rule=SentLevelNegative}
-
-
-
-
-

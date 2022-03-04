@@ -65,8 +65,9 @@ if __name__ == "__main__":
             dmreader = DummyReader(sample, readerPostProcessor)
             oo = mm.apply(dmreader, batch_size=1)
             #print(oo['all_pred_label_string'])
-            if oo['all_pred_label_string'] != neg:
-                tsv_list = [each_file, str(each_ann.start), str(each_ann.end), oo['all_pred_label_string'], text]
+            if oo['all_pred_label_string'][0] != 'neg':
+                tsv_list = [each_file, str(each_ann.start), str(each_ann.end), oo['all_pred_label_string'][0], text]
+                print(tsv_list)
                 tsv_line = '\t'.join(tsv_list)
                 fo.write(tsv_line+'\n')
         gs.deleteResource(gdoc)

@@ -9,7 +9,7 @@ import os
 import json
 
 
-def create_dict_sample(feature_list, text, label):
+def create_dict_sample(feature_list, text, label, doc):
     current_label = None
     if label == 'pos':
         if 'pest causing the death of affected plant' in feature_list:
@@ -24,6 +24,7 @@ def create_dict_sample(feature_list, text, label):
         current_dict = {}
         current_dict['text'] = text
         current_dict['label'] = current_label
+        current_dict['doc'] = doc
         return current_dict
 
 
@@ -53,16 +54,17 @@ if __name__ == "__main__":
             current_features = each_ann.features.to_dict()
             current_features_list = current_features['all_labels'].lower().split(' ||| ')
             pos_text = doc_text[each_ann.start:each_ann.end]
-            pos_dict = create_dict_sample(current_features_list, pos_text, 'pos')
+            print(pos_text)
+            pos_dict = create_dict_sample(current_features_list, pos_text, 'pos', each_file)
             if pos_dict:
                 all_training_list.append(pos_dict)
         neg_anns = all_anns.with_type("SentLevelToINegative")
-        for each_ann in anns:
+        for each_ann in neg_anns:
             neg_text = doc_text[each_ann.start:each_ann.end]
             letters = sum(c.isalpha() for c in neg_text)
             letter_ratio = letters/len(neg_text)
             if letter_ratio > 0.6:
-                neg_dict = create_dict_sample([], neg_text, 'neg')
+                neg_dict = create_dict_sample([], neg_text, 'neg', each_file)
                 all_training_list.append(neg_dict)
         gs.deleteResource(gdoc)
     with open(args.trainJsonOutput, 'w') as fo:

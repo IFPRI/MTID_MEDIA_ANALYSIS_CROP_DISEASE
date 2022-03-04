@@ -1,0 +1,11 @@
+## Install
+export GATE_HOME=PATH2GATE
+
+## Train
+'''
+python ifpriDiseaseTrain.py --trainFolder data/taggedData/
+python experimentManager.py --trainInput diseaseType.json --readerType json --nFold 5 --savePath modeldt/ --configFile diseaseTypeTrain.config --gpu --calSampleWeight --x_fields text --y_field label --modelType BERT_Simple --debug
+'''
+
+## Apply
+
