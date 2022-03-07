@@ -8,4 +8,6 @@ python experimentManager.py --trainInput diseaseType.json --readerType json --nF
 '''
 
 ## Apply
-
+'''
+python ifpriDiseaseApp.py --inputFolder data/taggedData/ --model modeldt/fold_0/ --gpu --config diseaseTypeTrain.config
+'''
