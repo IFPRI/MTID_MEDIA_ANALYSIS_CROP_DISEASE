@@ -2,7 +2,7 @@ eppo_animalsfull.lst:animals:eppo_full_name
 eppo_animalsshort.lst:animals:eppo_short_name
 microorganismsfull.lst:micro_organisms:eppo_full_name
 microorganismsshort.lst:micro_organisms:eppo_short_name
-plantsfull.lst:plants:eppo_full_name
-plantsshort.lst:plants:eppo_short_name
+eppo_plantsfull.lst:plants:eppo_full_name
+eppo_plantsshort.lst:plants:eppo_short_name
 wiki_plant_disease_common_name.lst:plant_disease:wiki_common_name
 wiki_plant_disease_sci_name.lst:plant_disease:wiki_sci_name

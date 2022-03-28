@@ -7,21 +7,21 @@ Rule: WikiDisease
   {Lookup.majorType == plant_disease}
 ):wikidisease
 --> 
-:wikidisease.PlantDisease = {rule=WikiDisease}
+:wikidisease.PlantDisease = {rule=WikiDisease, Scientific_Name=:wikidisease.Lookup.Scientific_Name, Common_Name=:wikidisease.Lookup.Common_Name, value=:wikidisease.Lookup@cleanString}
 
 Rule: EPPOAnimals
 (
   {Lookup.majorType == animals} | {Lookup.majorType == micro_organisms}
 ):wikidisease
 -->
-:wikidisease.EPPO_animals = {rule=EPPOAnimals}
+:wikidisease.EPPO_animals = {rule=EPPOAnimals, Scientific_Name=:wikidisease.Lookup.Scientific_Name, Common_Name=:wikidisease.Lookup.Common_Name, value=:wikidisease.Lookup@cleanString}
 
 Rule: EPPOPlant
 (
   {Lookup.majorType == plants}
 ):wikidisease
 -->
-:wikidisease.Plant = {rule=EPPOPlant}
+:wikidisease.Plant = {rule=EPPOPlant, Scientific_Name=:wikidisease.Lookup.Scientific_Name, Common_Name=:wikidisease.Lookup.Common_Name, value=:wikidisease.Lookup@cleanString}
 
 
 
