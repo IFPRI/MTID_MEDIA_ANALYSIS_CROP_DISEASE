@@ -1,6 +1,16 @@
 ## Install
-export GATE_HOME=PATH2GATE
-
+* add GATE_HOME to bashrc
+'''
+vim ~/.bashrc
+'''
+add following
+'''
+export GATE_HOME=/PATH/TO/GATE
+'''
+* create conda env
+'''
+conda env create -f environment.yml
+'''
 ## Train
 '''
 python ifpriDiseaseTrain.py --trainFolder data/taggedData/
@@ -10,4 +20,5 @@ python experimentManager.py --trainInput diseaseType.json --readerType json --nF
 ## Apply
 '''
 python ifpriDiseaseApp.py --inputFolder data/taggedData/ --model modeldt/fold_0/ --gpu --config diseaseTypeTrain.config
+python ifpriDiseaseApp.py --model modeldt/fold_0/ --gpu --config diseaseTypeTrain.config --inputURL https://www.growingproduce.com/fruits/grapes/spotted-lanternfly-found-virginia-grapes/
 '''

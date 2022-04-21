@@ -5,6 +5,7 @@ import random
 class BatchIter:
     def __init__(self, dataIter, batch_size=32, filling_last_batch=False, postProcessor=None):
         self.dataIter = dataIter
+        #print(self.dataIter.readerPostProcessor)
         self.batch_size = batch_size
         self.num_batches = self._get_num_batches()
         self.filling_last_batch = filling_last_batch

@@ -1,9 +1,9 @@
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 from bs4 import BeautifulSoup as soup
-from XSNLPReader import IfpriConflictTrainReader
-from XSNLPReader.readerPostProcessor import IfpriTrainPostProcessor
-from IFPRIMLLIB import IFPRIManager
+#from XSNLPReader import IfpriConflictTrainReader
+from XSNLPReader.readerPostProcessor import BertPostProcessor as DataPostProcessor
+#from IFPRIMLLIB import IFPRIManager
 from configobj import ConfigObj
 import argparse
 import sys
@@ -13,12 +13,18 @@ import math
 import copy
 import random
 from collections import defaultdict
-from word2number import w2n
+#from word2number import w2n
 
 
-class WebDownload(IFPRIManager):
-    def __init__(self, config, **kwargs):
-        super().__init__(config, **kwargs)
+class WebDownload:
+    def __init__(self, config=None, **kwargs):
+        self.options = Options()
+        self.options.headless = True
+        self.driver = webdriver.Firefox(options=self.options)
+        self.readerPostProcessor = DataPostProcessor(['text'], 'label', config={})
+
+    def close(self):
+        self.driver.close()
 
 
     def downloadUrlFromTxt(self, text_file, outputPath):
@@ -42,16 +48,15 @@ class WebDownload(IFPRIManager):
 
 
     def downLoadWebPage(self, url, sleep_max=2):
-        readerPostProcessor = IfpriTrainPostProcessor(max_sent_len=150)
-        options = Options()
-        options.headless = True
-        driver = webdriver.Firefox(options=options)
         html = ''
         raw_html = ''
         title = ''
+        cleaned_txt = ''
         try:
-            driver.get(url)
-            html = driver.page_source
+        #if True:
+            self.driver.get(url)
+            html = self.driver.page_source
+            #print(html)
             raw_html = html
             page = soup(html, 'html.parser')
             ps = page.find_all('p')
@@ -60,36 +65,47 @@ class WebDownload(IFPRIManager):
                 title = title[0]
             else:
                 title = 'no title'
-            cleaned_title = readerPostProcessor.scholarTextClean(str(title), strip_html=True, lower=False)
+            cleaned_title = self.readerPostProcessor.scholarTextClean(str(title), strip_html=True, lower=False)
             all_p_tag_sentence = [ptag.text for ptag in ps]
             html = '\n'.join(all_p_tag_sentence)
-            cleaned_txt = readerPostProcessor.scholarTextClean(html, strip_html=True, lower=False)
+            #print(html)
+            cleaned_txt = self.readerPostProcessor.scholarTextClean(html, strip_html=True, lower=False)
+            #print(cleaned_txt)
         except:
             print('error prosess ', url)
-        driver.close()
 
-        return title, html, raw_html
+        return title, html, raw_html, cleaned_txt
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("url_text", help="path to html link txt file")
-    parser.add_argument("output", help="path to outputs")
+    parser.add_argument("--url_text", help="path to html link txt file")
+    parser.add_argument("--url", help="path to html link txt file")
+    parser.add_argument("--output", help="path to outputs")
     args = parser.parse_args()
 
-    html_output_path = os.path.join(args.output,'html')
-    text_output_path = os.path.join(args.output,'text')
+    webManager = WebDownload()
+    title, html, raw_html, clean_text = webManager.downLoadWebPage(args.url)
+    #print(html)
+    print(title)
+    print(clean_text)
 
-    if not os.path.exists(html_output_path):
-        outputPath = Path(html_output_path)
-        outputPath.mkdir(parents=True, exist_ok=True)
+    webManager.close()
 
-    if not os.path.exists(text_output_path):
-        outputPath = Path(text_output_path)
-        outputPath.mkdir(parents=True, exist_ok=True)
 
-    webManager = WebDownload({})
-    webManager.downloadUrlFromTxt(args.url_text, args.output)
+    if args.output:
+        html_output_path = os.path.join(args.output,'html')
+        text_output_path = os.path.join(args.output,'text')
+
+        if not os.path.exists(html_output_path):
+            outputPath = Path(html_output_path)
+            outputPath.mkdir(parents=True, exist_ok=True)
+
+        if not os.path.exists(text_output_path):
+            outputPath = Path(text_output_path)
+            outputPath.mkdir(parents=True, exist_ok=True)
+
+    #webManager.downloadUrlFromTxt(args.url_text, args.output)
 
 
 

@@ -6,3 +6,4 @@ from .SBDMisInfoPostProcessor import SBDMisInfoPostProcessor
 from .SBDSentRelPostProcessor import SBDSentRelPostProcessor
 from .AutoModelPostProcessor import AutoModelPostProcessor
 from .SBERTNLIPostProcessor import SBERTNLIPostProcessor
+from .IfpriTrainPostProcessor import IfpriTrainPostProcessor

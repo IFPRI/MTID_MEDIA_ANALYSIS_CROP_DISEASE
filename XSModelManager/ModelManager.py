@@ -525,6 +525,7 @@ class ModelManager:
 
 
         batchIter = BatchIter(dataIter, batch_size=batch_size, filling_last_batch=filling_last_batch)
+        #print(dataIter.readerPostProcessor)
         #predLoger = getLogger('predLoger')
         #print(logging.root.level)
 
