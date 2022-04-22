@@ -12,6 +12,9 @@ from XSNLPReader.readerPostProcessor import BertPostProcessor as DataPostProcess
 from configobj import ConfigObj
 import csv
 from downloadWebPage import WebDownload
+import re
+import feedparser
+from pathlib import Path
 
 class DummyReader:
     def __init__(self, sample, readerPostProcessor):
@@ -57,19 +60,29 @@ class IFPRI_Disease:
         all_results = self.apply_to_single_input(doc_text, pdoc)
         self.gs.deleteResource(gdoc)
 
-    def apply_single_url(self, url):
+    def apply_single_url(self, url, save_html=None, date=None, save_txt=None):
         title, html, raw_html, clean_text = self.webManager.downLoadWebPage(url)
-        print(title)
+        #print(title)
         #print(clean_text)
         title = str(title)
         doc_text = str(title)+'\n'+clean_text
         pdoc = Document(doc_text)
         all_results = self.apply_to_single_input(doc_text, pdoc)
+        if save_html:
+            with open(save_html, 'w') as fo:
+                fo.write(html)
+
+        if save_txt:
+            with open(save_txt, 'w') as fo:
+                fo.write(doc_text)
+
+
         output_json_for_url = {
                 'url':url,
-                'date_of_the_artical':None,
+                'date_of_the_artical':date,
                 'title':title,
-                'items':all_results
+                'items':all_results,
+                'txt_file':save_txt 
                 }
         return output_json_for_url
 
@@ -125,6 +138,8 @@ class IFPRI_Disease:
                 host_name_dict = self.get_names(cl_host)
 
                 output_json = {
+                        'start_offset':each_ann.start,
+                        'end_offset':each_ann.end,
                         'Disease':disease_name_dict,
                         'Host':host_name_dict,
                         'Pest':pest_name_dict,
@@ -194,7 +209,9 @@ if __name__ == "__main__":
     parser.add_argument("--inputURL", help="input url")
     parser.add_argument("--model", help="path to trained model")
     parser.add_argument("--gpu", help="use gpu", default=False, action='store_true')
+    parser.add_argument("--rss", help="use rss from config file", default=False, action='store_true')
     parser.add_argument("--config", help="config file")
+    parser.add_argument("--outputFolder", help="outputFolder")
     parser.add_argument("--outputJson", help="json output", default='diseaseOutput.json')
     parser.add_argument("--outputTsv", help="disease type tsv output", default='diseaseOutput.tsv')
     parser.add_argument("--outputSummary", help="summary output", default='diseaseSummaryOutput.tsv')
@@ -204,21 +221,68 @@ if __name__ == "__main__":
 
     disease_manager = IFPRI_Disease(args.model)
     output_json = {}
-    if args.inputFolder:
-        all_input_list = glob.glob(os.path.join(args.inputFolder, '*'))
-        for each_file in all_input_list:
-            print(each_file)
-            disease_manager.apply_single_doc(each_file)
-            break
+    #if args.inputFolder:
+    #    all_input_list = glob.glob(os.path.join(args.inputFolder, '*'))
+    #    for each_file in all_input_list:
+    #        print(each_file)
+    #        disease_manager.apply_single_doc(each_file)
+    #        #break
     if args.inputURL:
-        output_json = [disease_manager.apply_single_url(args.inputURL)]
+        output_json = [disease_manager.apply_single_url(args.inputURL)]#
+        if args.outputJson:
+            print(output_json)
+            with open(args.outputJson, 'w') as fo:
+                json.dump(output_json, fo)
 
-    if args.outputJson:
-        print(output_json)
-        with open(args.outputJson, 'w') as fo:
-            json.dump(output_json, fo)
 
+    elif args.rss:
+        rss_url = config['RSS_FEED']['url']
+        NewsFeed = feedparser.parse(rss_url)
+        date = NewsFeed['headers']['date']
+        date = date.replace(',','')
+        date = date.replace(' ','_')
+        m = re.search('\d\d\_\w*_\d\d\d\d', date)
+        if m:
+            date = m.group()
+        current_output_path = os.path.join(args.outputFolder, date)
+        current_processed_file = str(os.path.join(current_output_path, 'processed_urls.txt'))
+        try:
+            processed_pages = []
+            with open(current_processed_file, 'r') as fpro:
+                for line in fpro:
+                    processed_pages.append(line.strip())
+        except:
+            processed_pages=[]
 
+        print(processed_pages)
+        if not os.path.exists(current_output_path):
+            outputPath = Path(current_output_path)
+            outputPath.mkdir(parents=True, exist_ok=True)
+        all_output_json = []
+        current_output_json_file = str(os.path.join(current_output_path, 'summary.json'))
+        try:
+            with open(current_output_json_file, 'r') as fji:
+                all_output_json = json.load(fji)
+        except:
+            all_output_json = []
+
+        for entry_id, each_entry in enumerate(NewsFeed['entries']):
+            current_url = each_entry['link']
+            if current_url not in processed_pages:
+                try:
+                    saved_html = os.path.join(current_output_path,str(entry_id+len(processed_pages))+'.html')
+                    saved_txt = os.path.join(current_output_path,str(entry_id+len(processed_pages))+'.txt')
+                    current_output_json = disease_manager.apply_single_url(current_url, save_txt=saved_txt, date=date)
+                    all_output_json.append(current_output_json)
+                    processed_pages.append(current_url)
+                except Exception as inst:
+                    print(inst)
+
+        with open(current_output_json_file, 'w') as fo:
+            json.dump(all_output_json, fo)
+        with open(current_processed_file, 'w') as fpro:
+            for each_item in processed_pages:
+                fpro.write(each_item+'\n')
 
 
 
