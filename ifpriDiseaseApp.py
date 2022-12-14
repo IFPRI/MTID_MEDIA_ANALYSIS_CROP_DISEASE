@@ -15,6 +15,10 @@ from downloadWebPage import WebDownload
 import re
 import feedparser
 from pathlib import Path
+script_path = os.path.abspath(__file__)
+print(script_path)
+parent = os.path.dirname(script_path)
+
 
 class DummyReader:
     def __init__(self, sample, readerPostProcessor):
@@ -49,7 +53,7 @@ class IFPRI_Disease:
         self.mm.load_model(model)
 
         self.gs = GateWorker()
-        self.gs_app = GateWorkerAnnotator('gateapp/IFPRI_Diease.xgapp', self.gs)
+        self.gs_app = GateWorkerAnnotator(os.path.join(parent,'gateapp/IFPRI_Diease.xgapp'), self.gs)
 
         self.webManager = WebDownload()
 
@@ -117,6 +121,7 @@ class IFPRI_Disease:
         eppo_animal_anns = all_anns.with_type("EPPO_animals")
         plant_anns = all_anns.with_type("Plant")
         disease_anns = all_anns.with_type("PlantDisease")
+        lookup_anns = all_anns.with_type("Lookup")
         
         all_results = []
 
@@ -131,11 +136,14 @@ class IFPRI_Disease:
             #print(oo['all_pred_label_string'])
             dmg_type = oo['all_pred_label_string'][0]
             if dmg_type != 'neg':
-                cl_pest_ann,cl_host,cl_disease = self.get_related_info(each_ann.start, each_ann.end, eppo_animal_anns, plant_anns, disease_anns)
+                cl_pest_ann,cl_host,cl_disease, cl_country = self.get_related_info(each_ann.start, each_ann.end, eppo_animal_anns, plant_anns, disease_anns, lookup_anns)
                 disease_name_dict = self.get_names(cl_disease)
                 disease_name_dict['local_name'] = None
                 pest_name_dict = self.get_names(cl_pest_ann)
                 host_name_dict = self.get_names(cl_host)
+                country_iso3 = None
+                if cl_country:
+                    country_iso3 = cl_country.features.get('ISO3')
 
                 output_json = {
                         'start_offset':each_ann.start,
@@ -144,7 +152,7 @@ class IFPRI_Disease:
                         'Host':host_name_dict,
                         'Pest':pest_name_dict,
                         'Impacted_area':{
-                            'Country':None,
+                            'Country':country_iso3,
                             'Sub-region':None,
                             'City':None,
                             },
@@ -153,7 +161,7 @@ class IFPRI_Disease:
                             'start':None,
                             'end':None,
                             },
-                        'Origin_country':None,
+                        'Origin_country':country_iso3,
                         'Orign_Sentence':text
                         }
                 print(output_json)
@@ -193,13 +201,52 @@ class IFPRI_Disease:
 
         #print(sent_start, send_end, output_anno)
         return output_anno
+
+
+    def find_closest_anno_with_feature(self, sent_start, send_end, current_annotation, feature, value):
+        distance = 99999
+        look_ahead_thres = 1000
+        output_anno = None
+        for each_ann in current_annotation:
+            #print(each_ann.features)
+            if each_ann.features.get(feature) == value:
+                #print(each_ann.features)
+                each_ann_start = each_ann.start
+                each_ann_end = each_ann.end
+                each_ann_mid = (each_ann_end - each_ann_start)/2 + each_ann_start
+                #current_dis = min(abs(sent_start - each_ann_mid), abs(send_end - each_ann_mid))
+                #current_dis = abs((sent_start - each_ann_mid) + (send_end - each_ann_mid))
+                if each_ann_mid > sent_start and each_ann_mid < send_end:
+                    distance = 0
+                    output_anno = each_ann
+                    break
+                else:
+                    abs_dis = (each_ann_mid - sent_start) + (each_ann_mid - send_end)
+                    if abs_dis < 0 and abs(abs_dis) < 1000:
+                        current_dis = abs(abs_dis)
+                        if current_dis < distance:
+                            distance = current_dis
+                            output_anno = each_ann
+                    else:
+                        if output_anno:
+                            break
+                        else:
+                            current_dis = abs(abs_dis)
+                            if current_dis < distance:
+                                distance = current_dis
+                                output_anno = each_ann
+
+        #print(sent_start, send_end, output_anno)
+        return output_anno
+
             
 
-    def get_related_info(self, sent_start, send_end, eppo_animal_anns, plant_anns, disease_anns):
+    def get_related_info(self, sent_start, send_end, eppo_animal_anns, plant_anns, disease_anns, lookup_anns):
         cl_pest_ann = self.find_closest_anno(sent_start, send_end, eppo_animal_anns)
         cl_host = self.find_closest_anno(sent_start, send_end, plant_anns)
         cl_disease = self.find_closest_anno(sent_start, send_end, disease_anns)
-        return cl_pest_ann, cl_host, cl_disease
+        cl_country = self.find_closest_anno_with_feature(sent_start, send_end, lookup_anns, 'minorType', 'country')
+        return cl_pest_ann, cl_host, cl_disease, cl_country
 
 
 

@@ -14,14 +14,14 @@ Rule: EPPOAnimals
   {Lookup.majorType == animals} | {Lookup.majorType == micro_organisms}
 ):wikidisease
 -->
-:wikidisease.EPPO_animals = {rule=EPPOAnimals, Scientific_Name=:wikidisease.Lookup.Scientific_Name, Common_Name=:wikidisease.Lookup.Common_Name, value=:wikidisease.Lookup@cleanString}
+:wikidisease.EPPO_animals = {rule=EPPOAnimals, Scientific_Name=:wikidisease.Lookup@cleanString, Common_Name=:wikidisease.Lookup@cleanString, value=:wikidisease.Lookup@cleanString}
 
 Rule: EPPOPlant
 (
   {Lookup.majorType == plants}
 ):wikidisease
 -->
-:wikidisease.Plant = {rule=EPPOPlant, Scientific_Name=:wikidisease.Lookup.Scientific_Name, Common_Name=:wikidisease.Lookup.Common_Name, value=:wikidisease.Lookup@cleanString}
+:wikidisease.Plant = {rule=EPPOPlant, Scientific_Name=:wikidisease.Lookup@cleanString, Common_Name=:wikidisease.Lookup@cleanString, value=:wikidisease.Lookup@cleanString}
 
 
 

@@ -25143,15 +25143,12 @@ laminaire digitée	full_name=laminaire digitée	lang=fr	identifier=N231417	code=
 kelp	full_name=kelp	lang=nl	identifier=N231418	code=LMINDI	source=EPPO
 ламинария пальчаторассеченная	full_name=ламинария пальчаторассеченная	lang=ru	identifier=N231419	code=LMINDI	source=EPPO
 fingertång	full_name=fingertång	lang=sv	identifier=N231420	code=LMINDI	source=EPPO
-Pest	full_name=Pest	lang=de	identifier=N231482	code=YERSPE	source=EPPO
 plague	full_name=plague	lang=en	identifier=N231483	code=YERSPE	source=EPPO
 peste	full_name=peste	lang=es	identifier=N231484	code=YERSPE	source=EPPO
 peste	full_name=peste	lang=fr	identifier=N231485	code=YERSPE	source=EPPO
 peste	full_name=peste	lang=it	identifier=N231486	code=YERSPE	source=EPPO
-pest	full_name=pest	lang=nl	identifier=N231487	code=YERSPE	source=EPPO
 peste	full_name=peste	lang=pt	identifier=N231488	code=YERSPE	source=EPPO
 чума	full_name=чума	lang=ru	identifier=N231489	code=YERSPE	source=EPPO
-pest	full_name=pest	lang=sv	identifier=N231490	code=YERSPE	source=EPPO
 Yersinia pseudotuberculosis	full_name=Yersinia pseudotuberculosis	lang=la	identifier=N231491	code=YERSPS	source=EPPO
 Endomycopsis lipolytica	full_name=Endomycopsis lipolytica	lang=la	identifier=N231507	code=SACMLL	source=EPPO
 dwarf disease of alfalfa	full_name=dwarf disease of alfalfa	lang=en	identifier=N231508	code=XYLEFA	source=EPPO
@@ -28019,7 +28016,6 @@ Phytoplasma balanitae	full_name=Phytoplasma balanitae	lang=la	identifier=N279867
 Balanite witches' broom phytop	full_name=Balanite witches' broom phytoplasma	lang=la	identifier=N279872	code=PHYPBA	source=EPPO
 Witches' broom of balanite	full_name=witches' broom of balanite	lang=en	identifier=N279873	code=PHYPBA	source=EPPO
 BltWB	full_name=BltWB	lang=en	identifier=N279874	code=PHYPBA	source=EPPO
-CP	full_name=CP	lang=en	identifier=N279877	code=PHYPTR	source=EPPO
 Phytoplasma sudamericanum	full_name=Phytoplasma sudamericanum	lang=la	identifier=N279878	code=PHYPSU	source=EPPO
 Witches' broom of passionfruit	full_name=witches' broom of passionfruit	lang=en	identifier=N279879	code=PHYPSU	source=EPPO
 PassWB	full_name=PassWB	lang=en	identifier=N279880	code=PHYPSU	source=EPPO
