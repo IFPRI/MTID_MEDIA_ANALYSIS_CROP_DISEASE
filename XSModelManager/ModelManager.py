@@ -342,7 +342,10 @@ class ModelManager:
 
     def load_model(self, load_path):
         entrie_load_path = os.path.join(load_path, 'model.net')
-        self.net = torch.load(entrie_load_path)
+        if not self.gpu:
+            self.net = torch.load(entrie_load_path, map_location=torch.device('cpu'))
+        else:
+            self.net = torch.load(entrie_load_path)
         self.load_checkpoint(load_path)
 
         self.net.to(self.device)
@@ -351,7 +354,10 @@ class ModelManager:
 
     def load_checkpoint(self, load_path, load_optimiser=False):
         check_point_load_path = os.path.join(load_path, 'check_point.pt')
-        checkpoint = torch.load(check_point_load_path)
+        if not self.gpu:
+            checkpoint = torch.load(check_point_load_path, map_location=torch.device('cpu'))
+        else:
+            checkpoint = torch.load(check_point_load_path)
 
         self.net.load_state_dict(checkpoint['model_state_dict'])
         epoch = checkpoint['epoch']

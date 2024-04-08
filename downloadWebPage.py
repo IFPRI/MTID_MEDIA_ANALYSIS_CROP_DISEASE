@@ -13,6 +13,8 @@ import math
 import copy
 import random
 from collections import defaultdict
+import requests
+
 #from word2number import w2n
 
 
@@ -52,9 +54,11 @@ class WebDownload:
         raw_html = ''
         title = ''
         cleaned_txt = ''
-        try:
-        #if True:
-            self.driver.get(url)
+        #try:
+        if True:
+            response = requests.get(url)
+            final_url = response.url
+            self.driver.get(final_url)
             html = self.driver.page_source
             #print(html)
             raw_html = html
@@ -71,8 +75,8 @@ class WebDownload:
             #print(html)
             cleaned_txt = self.readerPostProcessor.scholarTextClean(html, strip_html=True, lower=False)
             #print(cleaned_txt)
-        except:
-            print('error prosess ', url)
+        #except:
+        #    print('error prosess ', url)
 
         return title, html, raw_html, cleaned_txt
 

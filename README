@@ -22,3 +22,17 @@ python experimentManager.py --trainInput diseaseType.json --readerType json --nF
 python ifpriDiseaseApp.py --inputFolder data/taggedData/ --model modeldt/fold_0/ --gpu --config diseaseTypeTrain.config
 python ifpriDiseaseApp.py --model modeldt/fold_0/ --gpu --config diseaseTypeTrain.config --inputURL https://www.growingproduce.com/fruits/grapes/spotted-lanternfly-found-virginia-grapes/
 '''
+
+## CSV Output
+* activate ifpriDisease conda envoriment
+* create a empty folder for new outputs
+* copy the subfolders in output to the new folder
+* run exportjson2csv.py [new_output_folder] [csv file name]
+
+'''
+conda activate ifpriDisease
+mkdir Jan
+cp -r output/*_Jan_2024 Jan
+python exportjson2csv.py Jan/ Jan_2024.csv
+'''
+
