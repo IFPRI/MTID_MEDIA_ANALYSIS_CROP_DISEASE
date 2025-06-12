@@ -14,6 +14,10 @@ import copy
 import random
 from collections import defaultdict
 import requests
+from selenium.webdriver.common.desired_capabilities import DesiredCapabilities
+from selenium.webdriver.firefox.service import Service
+
+
 
 #from word2number import w2n
 
@@ -21,7 +25,15 @@ import requests
 class WebDownload:
     def __init__(self, config=None, **kwargs):
         self.options = Options()
-        self.options.headless = True
+        #self.options.headless = True
+        #self.options.binary = "/usr/bin/firefox"
+        #cap = DesiredCapabilities().FIREFOX
+        #cap["marionette"] = False
+        #service = Service('/home/gate/repos/MTID_MEDIA_ANALYSIS_CROP_DISEASE/geckodrive/geckodriver')
+        self.options.add_argument("--headless")
+
+        self.options.log.level = "trace"
+
         self.driver = webdriver.Firefox(options=self.options)
         self.readerPostProcessor = DataPostProcessor(['text'], 'label', config={})
 
@@ -56,8 +68,14 @@ class WebDownload:
         cleaned_txt = ''
         #try:
         if True:
-            response = requests.get(url)
-            final_url = response.url
+            print('init:',url)
+            self.driver.get(url)
+
+            #response = requests.get(url)
+            #final_url = response.url
+            final_url = self.driver.current_url
+
+            print('final:',final_url)
             self.driver.get(final_url)
             html = self.driver.page_source
             #print(html)

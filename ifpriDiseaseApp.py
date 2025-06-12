@@ -14,10 +14,17 @@ import csv
 from downloadWebPage import WebDownload
 import re
 import feedparser
+import openai
+import signal
 from pathlib import Path
 script_path = os.path.abspath(__file__)
 print(script_path)
 parent = os.path.dirname(script_path)
+
+def timeout_handler(signum, frame):
+    raise TimeoutError()
+
+signal.signal(signal.SIGALRM, timeout_handler)
 
 
 class DummyReader:
@@ -46,39 +53,34 @@ def get_ann_counts(anns, doc_text):
     return count_dict
 
 
-class IFPRI_Disease:
-    def __init__(self, model):
-        self.readerPostProcessor = DataPostProcessor(['text'], 'label', config=config)
-        self.mm = ModelManager(gpu=args.gpu, config=config)
-        self.mm.load_model(model)
 
-        self.gs = GateWorker()
-        self.gs_app = GateWorkerAnnotator(os.path.join(parent,'gateapp/IFPRI_Diease.xgapp'), self.gs)
-
+class IFPRI_Disease_Base:
+    def __init__(self):
         self.webManager = WebDownload()
 
-    def apply_single_doc(self, doc_in):
-        gdoc = self.gs.loadDocumentFromFile(doc_in)
-        pdoc = self.gs.gdoc2pdoc(gdoc)
-        doc_text = pdoc.text
-        all_results = self.apply_to_single_input(doc_text, pdoc)
-        self.gs.deleteResource(gdoc)
-
     def apply_single_url(self, url, save_html=None, date=None, save_txt=None):
-        title, html, raw_html, clean_text = self.webManager.downLoadWebPage(url)
-        #print(title)
-        #print(clean_text)
-        title = str(title)
-        doc_text = str(title)+'\n'+clean_text
-        pdoc = Document(doc_text)
-        all_results = self.apply_to_single_input(doc_text, pdoc)
-        if save_html:
-            with open(save_html, 'w') as fo:
-                fo.write(html)
+        title = None
+        try:
+            signal.alarm(120)
+            title, html, raw_html, clean_text = self.webManager.downLoadWebPage(url)
+            signal.alarm(0)
+            #print(title)
+            #print(clean_text)
+            title = str(title)
+            doc_text = str(title)+'\n'+clean_text
+            pdoc = Document(doc_text)
+            all_results = self.apply_to_single_input(doc_text, pdoc)
+            if save_html:
+                with open(save_html, 'w') as fo:
+                    fo.write(html)
 
-        if save_txt:
-            with open(save_txt, 'w') as fo:
-                fo.write(doc_text)
+            if save_txt:
+                with open(save_txt, 'w') as fo:
+                    fo.write(doc_text)
+        except Exception as e:
+            print("The function timed out!")
+            signal.alarm(0)
+            all_results = []
 
 
         output_json_for_url = {
@@ -86,9 +88,96 @@ class IFPRI_Disease:
                 'date_of_the_artical':date,
                 'title':title,
                 'items':all_results,
-                'txt_file':save_txt 
+                'txt_file':save_txt
                 }
+
         return output_json_for_url
+
+class IFPRI_DiseaseGPT(IFPRI_Disease_Base):
+    def __init__(self, config, **kwargs):
+        super().__init__(**kwargs)
+        openai.api_key = config['OPENAI']['key']
+        self.assitant_prompt = config['OPENAI']['prompt']
+
+    def getGPTresponse(self, content):
+        messages = [
+            {"role": "assistant", "content":self.assitant_prompt},
+            {"role": "user", "content":content}
+        ]
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=messages
+        )
+        return response
+
+    def apply_to_single_input(self, doc_text, pdoc):
+        all_results = []
+        max_retry = 2
+        num_retry = 0
+        timeout = 10
+        finish = False
+
+        #set default values:
+        output_json = {
+                   "start_offset":None,
+                   "end_offset":None,
+                   "Disease":None,
+                   "Host":None,
+                   "Pest":None,
+                   "Impacted_area":{
+                       'Country':None,
+                       'Sub-region':None,
+                       'City':None,
+                       },
+                   "Type_of_impact":None,
+                   "Duration":{
+                       "start":None,
+                       "end":None,
+                       },
+                   "Origin_country":None,
+                   "Orign_Sentence":None
+                   }
+
+
+        while (num_retry < max_retry) and (not finish):
+            try: 
+            #if True:
+                signal.alarm(timeout)
+                num_retry += 1
+                response = self.getGPTresponse(doc_text)
+                signal.alarm(0)
+                output_json = json.loads(response.choices[0].message.content)
+                print(output_json)
+                finish = True
+                all_results = [output_json]
+            except Exception as e:
+                signal.alarm(0)
+                print('error:',e)
+                if num_retry == max_retry:
+                    print('max retry reached')
+        print('finished: ', all_results)
+
+        return all_results
+
+
+class IFPRI_Disease(IFPRI_Disease_Base):
+    def __init__(self, model, **kwargs):
+        super().__init__(**kwargs)
+        self.readerPostProcessor = DataPostProcessor(['text'], 'label', config=config)
+        self.mm = ModelManager(gpu=args.gpu, config=config)
+        self.mm.load_model(model)
+
+        self.gs = GateWorker()
+        self.gs_app = GateWorkerAnnotator(os.path.join(parent,'gateapp/IFPRI_Diease.xgapp'), self.gs)
+
+        #self.webManager = WebDownload()
+
+    def apply_single_doc(self, doc_in):
+        gdoc = self.gs.loadDocumentFromFile(doc_in)
+        pdoc = self.gs.gdoc2pdoc(gdoc)
+        doc_text = pdoc.text
+        all_results = self.apply_to_single_input(doc_text, pdoc)
+        self.gs.deleteResource(gdoc)
 
 
     def get_names(self, annotation):
@@ -122,6 +211,7 @@ class IFPRI_Disease:
         plant_anns = all_anns.with_type("Plant")
         disease_anns = all_anns.with_type("PlantDisease")
         lookup_anns = all_anns.with_type("Lookup")
+        date_anns = all_anns.with_type("Date")
         
         all_results = []
 
@@ -136,7 +226,11 @@ class IFPRI_Disease:
             #print(oo['all_pred_label_string'])
             dmg_type = oo['all_pred_label_string'][0]
             if dmg_type != 'neg':
-                cl_pest_ann,cl_host,cl_disease, cl_country = self.get_related_info(each_ann.start, each_ann.end, eppo_animal_anns, plant_anns, disease_anns, lookup_anns)
+                cl_pest_ann,cl_host,cl_disease, cl_country, cl_date = self.get_related_info(each_ann.start, each_ann.end, eppo_animal_anns, plant_anns, disease_anns, lookup_anns, date_anns)
+                if cl_date:
+                    cl_date_str = doc_text[cl_date.start:cl_date.end]
+                else:
+                    cl_date_str = None
                 disease_name_dict = self.get_names(cl_disease)
                 disease_name_dict['local_name'] = None
                 pest_name_dict = self.get_names(cl_pest_ann)
@@ -158,7 +252,7 @@ class IFPRI_Disease:
                             },
                         'Type_of_impact':dmg_type,
                         'Duration':{
-                            'start':None,
+                            'start':cl_date_str,
                             'end':None,
                             },
                         'Origin_country':country_iso3,
@@ -241,12 +335,14 @@ class IFPRI_Disease:
 
             
 
-    def get_related_info(self, sent_start, send_end, eppo_animal_anns, plant_anns, disease_anns, lookup_anns):
+    def get_related_info(self, sent_start, send_end, eppo_animal_anns, plant_anns, disease_anns, lookup_anns, date_anns):
         cl_pest_ann = self.find_closest_anno(sent_start, send_end, eppo_animal_anns)
         cl_host = self.find_closest_anno(sent_start, send_end, plant_anns)
         cl_disease = self.find_closest_anno(sent_start, send_end, disease_anns)
         cl_country = self.find_closest_anno_with_feature(sent_start, send_end, lookup_anns, 'minorType', 'country')
-        return cl_pest_ann, cl_host, cl_disease, cl_country
+        cl_date = self.find_closest_anno(sent_start, send_end, date_anns)
+        
+        return cl_pest_ann, cl_host, cl_disease, cl_country, cl_date
 
 
 
@@ -258,6 +354,7 @@ if __name__ == "__main__":
     parser.add_argument("--gpu", help="use gpu", default=False, action='store_true')
     parser.add_argument("--rss", help="use rss from config file", default=False, action='store_true')
     parser.add_argument("--config", help="config file")
+    parser.add_argument("--useGPT", help="use GPT", default=False, action='store_true')
     parser.add_argument("--outputFolder", help="outputFolder")
     parser.add_argument("--outputJson", help="json output", default='diseaseOutput.json')
     parser.add_argument("--outputTsv", help="disease type tsv output", default='diseaseOutput.tsv')
@@ -266,14 +363,14 @@ if __name__ == "__main__":
 
     config = ConfigObj(args.config)
 
-    disease_manager = IFPRI_Disease(args.model)
+    if args.useGPT:
+        disease_manager = IFPRI_DiseaseGPT(config)
+        backup_manager = IFPRI_Disease(args.model)
+    else:
+        disease_manager = IFPRI_Disease(args.model)
+        backup_manager = disease_manager
     output_json = {}
-    #if args.inputFolder:
-    #    all_input_list = glob.glob(os.path.join(args.inputFolder, '*'))
-    #    for each_file in all_input_list:
-    #        print(each_file)
-    #        disease_manager.apply_single_doc(each_file)
-    #        #break
+
     if args.inputURL:
         output_json = [disease_manager.apply_single_url(args.inputURL)]#
         if args.outputJson:
@@ -315,13 +412,24 @@ if __name__ == "__main__":
 
         for entry_id, each_entry in enumerate(NewsFeed['entries']):
             current_url = each_entry['link']
+            print(each_entry)
+            pub_date = each_entry['published']
             if current_url not in processed_pages:
                 try:
                     saved_html = os.path.join(current_output_path,str(entry_id+len(processed_pages))+'.html')
                     saved_txt = os.path.join(current_output_path,str(entry_id+len(processed_pages))+'.txt')
-                    current_output_json = disease_manager.apply_single_url(current_url, save_txt=saved_txt, date=date)
+                    current_output_json = disease_manager.apply_single_url(current_url, save_txt=saved_txt, date=pub_date)
+                    if len(current_output_json['items']) == 0:
+                        print('apply backup')
+                        current_output_json = backup_manager.apply_single_url(current_url, save_txt=saved_txt, date=pub_date)
+
                     all_output_json.append(current_output_json)
                     processed_pages.append(current_url)
+                    with open(current_output_json_file, 'w') as fo:
+                        json.dump(all_output_json, fo)
+                    with open(current_processed_file, 'w') as fpro:
+                        for each_item in processed_pages:
+                            fpro.write(each_item+'\n')
                 except Exception as inst:
                     print(inst)
 
@@ -330,99 +438,6 @@ if __name__ == "__main__":
         with open(current_processed_file, 'w') as fpro:
             for each_item in processed_pages:
                 fpro.write(each_item+'\n')
-
-
-
-
-
-
-    ##readerPostProcessor = DataPostProcessor(['text'], 'label', config=config)
-    ##mm = ModelManager(gpu=args.gpu, config=config)
-    ##mm.load_model(args.model)
-
-    ##gs = GateWorker()
-    ##gs_app = GateWorkerAnnotator('gateapp/IFPRI_Diease.xgapp', gs)
-    #all_input_list = glob.glob(os.path.join(args.inputFolder, '*'))
-
-    #fo = open(args.outputTsv, 'w')
-    #tsv_line = 'file\tstart\tend\tlabel\tsentence\n'
-    #fo.write(tsv_line)
-
-    #doc_counts = {}
-    #for each_file in all_input_list:
-    #    print(each_file)
-    #    doc_counts[each_file] = {}
-    #    doc_counts[each_file]['damage_type'] = {}
-
-    #    gdoc = gs.loadDocumentFromFile(each_file)
-    #    pdoc = gs.gdoc2pdoc(gdoc)
-    #    doc_text = pdoc.text
-    #    process_doc = gs_app(pdoc)
-    #    all_anns = process_doc.annset()
-    #    sentence_anns = all_anns.with_type("Sentence")
-    #    eppo_animal_anns = all_anns.with_type("EPPO_animals")
-    #    plant_anns = all_anns.with_type("Plant")
-    #    disease = all_anns.with_type("PlantDisease")
-
-    #    doc_counts[each_file]['plants'] = get_ann_counts(plant_anns, doc_text)
-    #    doc_counts[each_file]['disease'] = get_ann_counts(disease, doc_text)
-    #    doc_counts[each_file]['pest'] = get_ann_counts(eppo_animal_anns, doc_text)
-
-
-    #    for each_ann in sentence_anns:
-    #        sample = {}
-    #        text = doc_text[each_ann.start:each_ann.end]
-    #        sample['text'] = text
-    #        sample['label'] = None
-    #        dmreader = DummyReader(sample, readerPostProcessor)
-    #        oo = mm.apply(dmreader, batch_size=1)
-    #        #print(oo['all_pred_label_string'])
-    #        dmg_type = oo['all_pred_label_string'][0]
-    #        if dmg_type != 'neg':
-    #            #tsv_list = [each_file, str(each_ann.start), str(each_ann.end), dmg_type, text]
-    #            #print(tsv_list)
-    #            #tsv_line = '\t'.join(tsv_list)
-    #            #fo.write(tsv_line+'\n')
-    #            #if dmg_type not in doc_counts[each_file]['damage_type']:
-    #            #    doc_counts[each_file]['damage_type'][dmg_type] = 0
-    #            #doc_counts[each_file]['damage_type'][dmg_type] += 1
-
-    #    gs.deleteResource(gdoc)
-    #fo.close()
-
-    #csv_keys = []
-    #for each_file in doc_counts:
-    #    for each_output_type in doc_counts[each_file]:
-    #        for each_item in doc_counts[each_file][each_output_type]:
-    #            csv_keys.append(' ||| '.join([each_output_type, each_item]))
-
-    #f_csv = open(args.outputSummary, 'w', newline='')
-    #spamwriter = csv.writer(f_csv, delimiter='\t',quotechar='"', quoting=csv.QUOTE_MINIMAL)
-    #csv_keys = list(set(csv_keys))
-    #print(csv_keys)
-    #csv_headings = ['file_name']+csv_keys
-    #spamwriter.writerow(csv_headings)
-
-    #for each_file in doc_counts:
-    #    csv_line = [each_file]
-    #    for each_key in csv_keys:
-    #        each_key_tok = each_key.split(' ||| ')
-    #        output_type = each_key_tok[0]
-    #        output_item = each_key_tok[1]
-    #        have_value = False
-    #        if output_type in doc_counts[each_file]:
-    #            if output_item in doc_counts[each_file][output_type]:
-    #                csv_line.append(doc_counts[each_file][output_type][output_item])
-    #                have_value = True
-    #        if not have_value:
-    #            csv_line.append(0)
-    #    print(csv_line)
-    #    spamwriter.writerow(csv_line)
-    #f_csv.close()
-
-
-
-
 
 
 
